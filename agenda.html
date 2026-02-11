@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Agenda de Viaturas (Drag & Drop)</title>
+  <style>
+    :root { --b:#e5e7eb; --bg:#f8fafc; --txt:#0f172a; --muted:#64748b; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; color:var(--txt); background:var(--bg); }
+    header { padding:14px 16px; border-bottom:1px solid var(--b); background:white; position:sticky; top:0; z-index:5; }
+    header h1 { margin:0; font-size:16px; }
+    header .sub { color:var(--muted); font-size:12px; margin-top:2px; }
+
+    .wrap { display:grid; grid-template-columns: 380px 1fr; gap:12px; padding:12px; }
+    .panel { background:white; border:1px solid var(--b); border-radius:12px; overflow:hidden; }
+    .panel h2 { margin:0; padding:12px 12px 8px; font-size:14px; border-bottom:1px solid var(--b); }
+    .panel .content { padding:12px; }
+
+    .jobs { display:flex; flex-direction:column; gap:10px; }
+    .job {
+      border:1px solid var(--b); border-radius:12px; padding:10px;
+      background:#fff; cursor:grab;
+      box-shadow: 0 1px 0 rgba(15,23,42,.04);
+      user-select:none;
+    }
+    .job:active { cursor:grabbing; }
+    .job .title { font-weight:600; font-size:13px; }
+    .job .meta { margin-top:6px; font-size:12px; color:var(--muted); display:flex; gap:8px; flex-wrap:wrap; }
+
+    .job.overdue { border-color:#ef4444; background:#fff1f2; }
+    .job.dueToday { border-color:#f59e0b; background:#fffbeb; }
+
+    .toolbar { display:flex; gap:8px; flex-wrap:wrap; }
+    .toolbar input, .toolbar button, .toolbar select {
+      border:1px solid var(--b); border-radius:10px; padding:8px 10px; font-size:13px; background:white;
+    }
+    .toolbar input[type="date"]{ padding:7px 10px; }
+    .toolbar button { cursor:pointer; }
+    .toolbar button:hover { background:#f1f5f9; }
+
+    table { width:100%; border-collapse:separate; border-spacing:0; }
+    thead th {
+      position:sticky; top:54px; background:white; z-index:4;
+      text-align:left; font-size:12px; color:var(--muted);
+      padding:10px; border-bottom:1px solid var(--b);
+    }
+    tbody td { border-bottom:1px solid var(--b); padding:10px; vertical-align:top; }
+    tbody tr:hover td { background:#fafafa; }
+    .car { width:180px; font-weight:600; font-size:13px; }
+
+    .lane {
+      min-height:56px;
+      border:2px dashed transparent;
+      border-radius:12px;
+      padding:8px;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:flex-start;
+    }
+    .lane.is-over { border-color:#60a5fa; background:#eff6ff; }
+    .lane .hint { font-size:12px; color:var(--muted); padding:10px 6px; }
+
+    .assigned {
+      border:1px solid var(--b);
+      border-radius:12px;
+      padding:8px 10px;
+      background:#f8fafc;
+      display:flex; gap:10px; align-items:center;
+      user-select:none;
+    }
+    .assigned .txt { font-size:12px; }
+    .assigned .rm { border:none; background:transparent; cursor:pointer; color:#ef4444; font-weight:700; font-size:14px; }
+
+    .pill { font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid var(--b); background:white; color:var(--muted); }
+
+    .rightTop {
+      display:flex; justify-content:space-between; align-items:center; gap:10px;
+      padding:12px; border-bottom:1px solid var(--b); background:white;
+      position:sticky; top:0; z-index:6;
+    }
+    .rightTop .date { font-size:13px; color:var(--muted); }
+
+    .toast {
+      position:fixed; bottom:14px; right:14px;
+      background:#0f172a; color:white; padding:10px 12px;
+      border-radius:12px; opacity:0; transform:translateY(6px);
+      transition:.2s; font-size:13px;
+      max-width:min(420px, calc(100vw - 28px));
+    }
+    .toast.show { opacity:1; transform:translateY(0); }
+
+    @media (max-width: 980px){
+      .wrap{ grid-template-columns:1fr; }
+      thead th{ top:0; }
+      .rightTop{ position:relative; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Agenda de Viaturas</h1>
+    <div class="sub">
+      Pendentes (globais) → arrasta para atribuir a um carro no dia selecionado. Ao atribuir, o trabalho sai dos pendentes.
+    </div>
+  </header>
+
+  <div class="wrap">
+    <!-- LEFT: Global pending jobs -->
+    <div class="panel">
+      <h2>Trabalhos (por atribuir) — Pendentes</h2>
+      <div class="content">
+        <div class="toolbar" style="margin-bottom:10px;">
+          <input id="jobTitle" placeholder="Trabalho (ex: Obra X)" />
+          <input id="jobQty" placeholder="Qtd (ex: 12 m³)" />
+          <input id="jobTime" placeholder="Hora (ex: 08:00)" />
+          <input id="jobDue" type="date" title="Data limite" />
+          <button id="addJob">Adicionar</button>
+          <button id="resetPending" title="Repõe os 3 exemplos">Repor exemplos</button>
+        </div>
+
+        <div id="jobs" class="jobs"></div>
+
+        <div style="margin-top:10px; color:var(--muted); font-size:12px;">
+          Dica: podes <strong>arrastar de volta</strong> do carro para esta lista para tornar pendente novamente.
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Schedule (per selected day) -->
+    <div class="panel">
+      <div class="rightTop">
+        <div style="display:flex; gap:10px; align-items:center;">
+          <strong style="font-size:14px;">Planeamento</strong>
+          <span class="date" id="dateLabel"></span>
+        </div>
+        <div class="toolbar">
+          <select id="daySelect" title="Selecionar dia"></select>
+          <button id="clearDay" title="Limpa atribuições só deste dia">Limpar dia</button>
+        </div>
+      </div>
+
+      <div class="content" style="padding:0;">
+        <table>
+          <thead>
+            <tr>
+              <th class="car">Carro</th>
+              <th>Trabalhos atribuídos (dia selecionado)</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // -----------------------------
+    // Config
+    // -----------------------------
+    const CARS = [
+      "00GJ92","04VA73","10BH15","15VQ28","16AZ06",
+      "18AI61","18AI62","28US30","3864ZR","3865ZR"
+    ];
+
+    // Helpers
+    const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
+    const $ = (id) => document.getElementById(id);
+    const toast = (msg) => {
+      const t = $("toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
+    };
+    function safeParse(s){ try { return JSON.parse(s); } catch { return null; } }
+    function escapeHtml(str){
+      return String(str).replace(/[&<>"']/g, (m) => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+      }[m]));
+    }
+
+    // Date helpers
+    function formatDayKey(d){
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2,"0");
+      const dd = String(d.getDate()).padStart(2,"0");
+      return `${yyyy}-${mm}-${dd}`; // YYYY-MM-DD
+    }
+    function dayLabel(iso){
+      const d = new Date(iso + "T00:00:00");
+      return d.toLocaleDateString("pt-PT", { weekday:"short", day:"2-digit", month:"2-digit", year:"numeric" });
+    }
+    function toPtDate(iso){
+      if (!iso) return "";
+      const [y,m,d] = iso.split("-");
+      if (!y || !m || !d) return iso;
+      return `${d}/${m}/${y}`;
+    }
+
+    function applyDueClass(el, dueIso){
+      const todayKey = formatDayKey(new Date());
+      if (!dueIso) return;
+      if (dueIso < todayKey) el.classList.add("overdue");
+      else if (dueIso === todayKey) el.classList.add("dueToday");
+    }
+
+    // -----------------------------
+    // Storage model
+    // - Pendentes: globais (independentes do dia)
+    // - Planeamento: por dia
+    // -----------------------------
+    const PENDING_KEY = "agenda_pending_v1";         // global
+    const DAY_KEY = (day) => `agenda_day_v1_${day}`; // per day
+
+    function seedPendingExamples(){
+      // Apenas 3 exemplos (não replica por dia)
+      const todayKey = formatDayKey(new Date());
+      const d1 = todayKey;
+      const d2 = addDaysIso(todayKey, 1);
+      const d3 = addDaysIso(todayKey, 2);
+
+      return [
+        { id: uid(), title:"Obra A", qty:"10 m³", time:"08:00", due:d1 },
+        { id: uid(), title:"Obra B", qty:"6 m³",  time:"09:30", due:d2 },
+        { id: uid(), title:"Bombeamento C", qty:"18 m³", time:"11:00", due:d3 },
+      ];
+    }
+
+    function addDaysIso(iso, days){
+      const d = new Date(iso + "T00:00:00");
+      d.setDate(d.getDate() + days);
+      return formatDayKey(d);
+    }
+
+    function loadPending(){
+      const raw = localStorage.getItem(PENDING_KEY);
+      if (!raw) {
+        const seeded = seedPendingExamples();
+        localStorage.setItem(PENDING_KEY, JSON.stringify(seeded));
+        return seeded;
+      }
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : seedPendingExamples();
+      } catch {
+        return seedPendingExamples();
+      }
+    }
+
+    function savePending(list){
+      localStorage.setItem(PENDING_KEY, JSON.stringify(list));
+    }
+
+    function loadDayPlan(dayKey){
+      const raw = localStorage.getItem(DAY_KEY(dayKey));
+      if (!raw) return { assignedByCar: {} };
+      try {
+        const parsed = JSON.parse(raw);
+        parsed.assignedByCar = parsed.assignedByCar && typeof parsed.assignedByCar === "object" ? parsed.assignedByCar : {};
+        return parsed;
+      } catch {
+        return { assignedByCar: {} };
+      }
+    }
+
+    function saveDayPlan(dayKey, plan){
+      localStorage.setItem(DAY_KEY(dayKey), JSON.stringify(plan));
+    }
+
+    // Current selection
+    const today = new Date();
+    let currentDayKey = formatDayKey(today);
+
+    let pending = loadPending();                 // global list
+    let dayPlan = loadDayPlan(currentDayKey);    // per selected day
+
+    // -----------------------------
+    // UI render
+    // -----------------------------
+    function renderDayPicker(){
+      const sel = $("daySelect");
+      sel.innerHTML = "";
+      const base = new Date();
+      for (let offset=-7; offset<=7; offset++){
+        const d = new Date(base);
+        d.setDate(base.getDate() + offset);
+        const k = formatDayKey(d);
+        const opt = document.createElement("option");
+        opt.value = k;
+        opt.textContent = dayLabel(k);
+        if (k === currentDayKey) opt.selected = true;
+        sel.appendChild(opt);
+      }
+      $("dateLabel").textContent = dayLabel(currentDayKey);
+    }
+
+    function jobCard(job){
+      const div = document.createElement("div");
+      div.className = "job";
+      div.draggable = true;
+      div.dataset.jobId = job.id;
+
+      applyDueClass(div, job.due);
+
+      div.innerHTML = `
+        <div class="title">${escapeHtml(job.title)}</div>
+        <div class="meta">
+          ${job.qty ? `<span class="pill">${escapeHtml(job.qty)}</span>` : ""}
+          ${job.time ? `<span class="pill">${escapeHtml(job.time)}</span>` : ""}
+          ${job.due ? `<span class="pill">Limite: ${escapeHtml(toPtDate(job.due))}</span>` : ""}
+        </div>
+      `;
+
+      div.addEventListener("dragstart", (e) => {
+        e.dataTransfer.setData("text/plain", JSON.stringify({ jobId: job.id, from: "pending" }));
+        e.dataTransfer.effectAllowed = "move";
+      });
+
+      return div;
+    }
+
+    function assignedChip(job, carId){
+      const wrap = document.createElement("div");
+      wrap.className = "assigned";
+      wrap.draggable = true;
+      wrap.dataset.jobId = job.id;
+      wrap.dataset.carId = carId;
+
+      wrap.innerHTML = `
+        <div class="txt">
+          <strong>${escapeHtml(job.title)}</strong>
+          ${job.time ? ` <span class="pill">${escapeHtml(job.time)}</span>` : ""}
+          ${job.qty ? ` <span class="pill">${escapeHtml(job.qty)}</span>` : ""}
+          ${job.due ? ` <span class="pill">Limite: ${escapeHtml(toPtDate(job.due))}</span>` : ""}
+        </div>
+        <button class="rm" title="Remover (volta a pendente)">&times;</button>
+      `;
+
+      wrap.querySelector(".rm").addEventListener("click", () => {
+        unassignToPending(carId, job.id);
+      });
+
+      wrap.addEventListener("dragstart", (e) => {
+        e.dataTransfer.setData("text/plain", JSON.stringify({ jobId: job.id, from: "car", carId }));
+        e.dataTransfer.effectAllowed = "move";
+      });
+
+      return wrap;
+    }
+
+    function renderPending(){
+      const jobsDiv = $("jobs");
+      jobsDiv.innerHTML = "";
+
+      if (pending.length === 0){
+        const empty = document.createElement("div");
+        empty.className = "hint";
+        empty.style.color = "var(--muted)";
+        empty.textContent = "Sem pendentes.";
+        jobsDiv.appendChild(empty);
+        return;
+      }
+
+      // Ordena por data limite (mais cedo primeiro)
+      const sorted = [...pending].sort((a,b) => (a.due||"9999-12-31").localeCompare(b.due||"9999-12-31"));
+      sorted.forEach(j => jobsDiv.appendChild(jobCard(j)));
+    }
+
+    function renderDayRows(){
+      const rows = $("rows");
+      rows.innerHTML = "";
+
+      CARS.forEach(carId => {
+        const tr = document.createElement("tr");
+
+        const tdCar = document.createElement("td");
+        tdCar.className = "car";
+        tdCar.textContent = carId;
+
+        const tdLane = document.createElement("td");
+        const lane = document.createElement("div");
+        lane.className = "lane";
+        lane.dataset.carId = carId;
+
+        const assigned = dayPlan.assignedByCar[carId] || [];
+        if (assigned.length === 0){
+          const hint = document.createElement("div");
+          hint.className = "hint";
+          hint.textContent = "Larga aqui os trabalhos…";
+          lane.appendChild(hint);
+        } else {
+          assigned.forEach(job => lane.appendChild(assignedChip(job, carId)));
+        }
+
+        // Drop handling (assign/move within day)
+        lane.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          lane.classList.add("is-over");
+          e.dataTransfer.dropEffect = "move";
+        });
+        lane.addEventListener("dragleave", () => lane.classList.remove("is-over"));
+        lane.addEventListener("drop", (e) => {
+          e.preventDefault();
+          lane.classList.remove("is-over");
+          const payload = safeParse(e.dataTransfer.getData("text/plain"));
+          if (!payload?.jobId) return;
+
+          if (payload.from === "pending"){
+            assignFromPending(carId, payload.jobId);
+          } else if (payload.from === "car"){
+            moveBetweenCars(payload.carId, carId, payload.jobId);
+          }
+        });
+
+        tdLane.appendChild(lane);
+        tr.appendChild(tdCar);
+        tr.appendChild(tdLane);
+        rows.appendChild(tr);
+      });
+
+      saveDayPlan(currentDayKey, dayPlan);
+    }
+
+    function renderAll(){
+      $("dateLabel").textContent = dayLabel(currentDayKey);
+      renderPending();
+      renderDayRows();
+    }
+
+    // -----------------------------
+    // Actions
+    // -----------------------------
+    function assignFromPending(carId, jobId){
+      const idx = pending.findIndex(j => j.id === jobId);
+      if (idx === -1) return;
+
+      const job = pending.splice(idx, 1)[0]; // remove from pending
+      if (!dayPlan.assignedByCar[carId]) dayPlan.assignedByCar[carId] = [];
+      dayPlan.assignedByCar[carId].push(job);
+
+      savePending(pending);
+      saveDayPlan(currentDayKey, dayPlan);
+
+      toast(`Atribuído a ${carId} (${dayLabel(currentDayKey)})`);
+      renderAll();
+    }
+
+    function unassignToPending(carId, jobId){
+      const arr = dayPlan.assignedByCar[carId] || [];
+      const idx = arr.findIndex(j => j.id === jobId);
+      if (idx === -1) return;
+
+      const job = arr.splice(idx, 1)[0]; // remove from car
+      pending.push(job);                 // back to pending
+
+      if (arr.length === 0) delete dayPlan.assignedByCar[carId];
+
+      savePending(pending);
+      saveDayPlan(currentDayKey, dayPlan);
+
+      toast(`Removido de ${carId} e voltou a pendente`);
+      renderAll();
+    }
+
+    function moveBetweenCars(fromCar, toCar, jobId){
+      if (fromCar === toCar) return;
+
+      const fromArr = dayPlan.assignedByCar[fromCar] || [];
+      const idx = fromArr.findIndex(j => j.id === jobId);
+      if (idx === -1) return;
+
+      const job = fromArr.splice(idx, 1)[0];
+      if (!dayPlan.assignedByCar[toCar]) dayPlan.assignedByCar[toCar] = [];
+      dayPlan.assignedByCar[toCar].push(job);
+
+      if (fromArr.length === 0) delete dayPlan.assignedByCar[fromCar];
+
+      saveDayPlan(currentDayKey, dayPlan);
+
+      toast(`Movido ${fromCar} → ${toCar}`);
+      renderAll();
+    }
+
+    // Drop back to pending list (unassign)
+    const jobsContainer = $("jobs");
+    jobsContainer.addEventListener("dragover", (e) => { e.preventDefault(); });
+    jobsContainer.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const payload = safeParse(e.dataTransfer.getData("text/plain"));
+      if (payload?.from === "car" && payload.jobId && payload.carId){
+        unassignToPending(payload.carId, payload.jobId);
+      }
+    });
+
+    // Add pending job (global)
+    $("addJob").addEventListener("click", () => {
+      const title = $("jobTitle").value.trim();
+      const qty = $("jobQty").value.trim();
+      const time = $("jobTime").value.trim();
+      const due = $("jobDue").value; // YYYY-MM-DD
+
+      if (!title) return toast("Indica um nome de trabalho.");
+      if (!due) return toast("Indica a data limite.");
+
+      pending.unshift({ id: uid(), title, qty, time, due });
+      savePending(pending);
+
+      $("jobTitle").value = "";
+      $("jobQty").value = "";
+      $("jobTime").value = "";
+      $("jobDue").value = "";
+
+      toast("Adicionado aos pendentes");
+      renderAll();
+    });
+
+    // Enter para adicionar
+    ["jobTitle","jobQty","jobTime","jobDue"].forEach(id => {
+      $(id).addEventListener("keydown", (e) => {
+        if (e.key === "Enter") $("addJob").click();
+      });
+    });
+
+    // Repõe os 3 exemplos (pendentes globais)
+    $("resetPending").addEventListener("click", () => {
+      pending = seedPendingExamples();
+      savePending(pending);
+      toast("Pendentes repostos (3 exemplos).");
+      renderAll();
+    });
+
+    // Limpar apenas o dia selecionado (devolve tudo a pendente)
+    $("clearDay").addEventListener("click", () => {
+      const allCars = Object.keys(dayPlan.assignedByCar || {});
+      allCars.forEach(carId => {
+        (dayPlan.assignedByCar[carId] || []).forEach(job => pending.push(job));
+      });
+      dayPlan = { assignedByCar: {} };
+
+      savePending(pending);
+      localStorage.removeItem(DAY_KEY(currentDayKey));
+
+      toast("Dia limpo (trabalhos voltaram a pendente).");
+      renderAll();
+    });
+
+    // Change day (planeamento muda, pendentes mantêm-se)
+    $("daySelect").addEventListener("change", (e) => {
+      currentDayKey = e.target.value;
+      dayPlan = loadDayPlan(currentDayKey);
+      renderAll();
+    });
+
+    // Init
+    renderDayPicker();
+    renderAll();
+  </script>
+</body>
+</html>
