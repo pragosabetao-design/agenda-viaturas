@@ -7,49 +7,36 @@
   <style>
     :root { --b:#e5e7eb; --bg:#f8fafc; --txt:#0f172a; --muted:#64748b; }
     body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; color:var(--txt); background:var(--bg); }
-    header { padding:14px 16px; border-bottom:1px solid var(--b); background:white; position:sticky; top:0; z-index:5; }
+    header { padding:14px 16px; border-bottom:1px solid var(--b); background:white; position:sticky; top:0; z-index:10; }
     header h1 { margin:0; font-size:16px; }
     header .sub { color:var(--muted); font-size:12px; margin-top:2px; }
 
-    .wrap { display:grid; grid-template-columns: 380px 1fr; gap:12px; padding:12px; }
+    .wrap { display:grid; grid-template-columns: 520px 1fr; gap:12px; padding:12px; }
     .panel { background:white; border:1px solid var(--b); border-radius:12px; overflow:hidden; }
     .panel h2 { margin:0; padding:12px 12px 8px; font-size:14px; border-bottom:1px solid var(--b); }
     .panel .content { padding:12px; }
 
-    .jobs { display:flex; flex-direction:column; gap:10px; }
-    .job {
-      border:1px solid var(--b); border-radius:12px; padding:10px;
-      background:#fff; cursor:grab;
-      box-shadow: 0 1px 0 rgba(15,23,42,.04);
-      user-select:none;
-    }
-    .job:active { cursor:grabbing; }
-    .job .title { font-weight:600; font-size:13px; }
-    .job .meta { margin-top:6px; font-size:12px; color:var(--muted); display:flex; gap:8px; flex-wrap:wrap; }
-
-    .job.overdue { border-color:#ef4444; background:#fff1f2; }
-    .job.dueToday { border-color:#f59e0b; background:#fffbeb; }
-
-    .toolbar { display:flex; gap:8px; flex-wrap:wrap; }
-    .toolbar input, .toolbar button, .toolbar select {
+    .toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .toolbar input, .toolbar button, .toolbar select, .toolbar textarea{
       border:1px solid var(--b); border-radius:10px; padding:8px 10px; font-size:13px; background:white;
     }
     .toolbar input[type="date"]{ padding:7px 10px; }
     .toolbar button { cursor:pointer; }
     .toolbar button:hover { background:#f1f5f9; }
 
-    table { width:100%; border-collapse:separate; border-spacing:0; }
+    table { width:100%; border-collapse:separate; border-spacing:0; table-layout:fixed; }
     thead th {
-      position:sticky; top:54px; background:white; z-index:4;
+      position:sticky; top:58px; background:white; z-index:6;
       text-align:left; font-size:12px; color:var(--muted);
       padding:10px; border-bottom:1px solid var(--b);
     }
     tbody td { border-bottom:1px solid var(--b); padding:10px; vertical-align:top; }
     tbody tr:hover td { background:#fafafa; }
-    .car { width:180px; font-weight:600; font-size:13px; }
 
-    .lane {
-      min-height:56px;
+    /* Left "Pendentes" column */
+    .pendCol { width:520px; }
+    .pendLane{
+      min-height:110px;
       border:2px dashed transparent;
       border-radius:12px;
       padding:8px;
@@ -57,9 +44,74 @@
       gap:8px;
       flex-wrap:wrap;
       align-items:flex-start;
+      background:#fff;
+    }
+    .pendLane.is-over { border-color:#60a5fa; background:#eff6ff; }
+    .pendHint { font-size:12px; color:var(--muted); padding:10px 6px; }
+
+    .job {
+      border:1px solid var(--b); border-radius:12px; padding:10px;
+      background:#fff; cursor:grab;
+      box-shadow: 0 1px 0 rgba(15,23,42,.04);
+      user-select:none;
+      position:relative;
+      min-width:240px;
+      max-width:100%;
+    }
+    .job:active { cursor:grabbing; }
+    .job .title { font-weight:800; font-size:13px; }
+    .job .meta { margin-top:6px; font-size:12px; color:var(--muted); display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .job .notes { margin-top:8px; font-size:12px; color:var(--txt); opacity:.85; white-space:pre-wrap; }
+    .job.overdue { border-color:#ef4444; background:#fff1f2; }
+    .job.dueToday { border-color:#f59e0b; background:#fffbeb; }
+
+    .jobActions { margin-left:auto; display:flex; gap:6px; }
+    .iconBtn{
+      border:1px solid var(--b);
+      background:white;
+      border-radius:10px;
+      padding:4px 8px;
+      font-size:12px;
+      cursor:pointer;
+    }
+    .iconBtn:hover{ background:#f1f5f9; }
+    .iconBtn.danger{ color:#ef4444; }
+
+    /* Planning columns */
+    .car { width:250px; font-weight:600; font-size:13px; }
+    .carLine, .carTop, .driverBlock { min-width:0; }
+    .carTop span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:140px; display:inline-block; }
+    .carLine { display:flex; flex-direction:column; gap:6px; }
+    .carTop { display:flex; align-items:center; gap:8px; }
+    .tagInactive { font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid var(--b); background:#f1f5f9; color:var(--muted); }
+    .typeTag { font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid var(--b); background:#fff; color:var(--muted); }
+
+    .driverBlock{ display:flex; flex-direction:column; gap:6px; }
+    .driverRow { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .driverRow label { font-size:12px; color:var(--muted); }
+    .driverRow select { padding:6px 8px; font-size:12px; max-width:220px; width:100%; }
+
+    .driverInfoRow{
+      display:flex; gap:10px; align-items:center;
+      font-size:11px; color:var(--muted); line-height:1.2;
+    }
+    .driverConflict { color:#ef4444; }
+    .conflictSelect { border-color:#ef4444 !important; background:#fff1f2 !important; }
+
+    .lane {
+      min-height:90px;
+      border:2px dashed transparent;
+      border-radius:12px;
+      padding:8px;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:flex-start;
+      background:#fff;
     }
     .lane.is-over { border-color:#60a5fa; background:#eff6ff; }
     .lane .hint { font-size:12px; color:var(--muted); padding:10px 6px; }
+    .lane.disabled { opacity:.65; background:#f8fafc; }
 
     .assigned {
       border:1px solid var(--b);
@@ -68,351 +120,727 @@
       background:#f8fafc;
       display:flex; gap:10px; align-items:center;
       user-select:none;
+      max-width:100%;
     }
     .assigned .txt { font-size:12px; }
     .assigned .rm { border:none; background:transparent; cursor:pointer; color:#ef4444; font-weight:700; font-size:14px; }
 
     .pill { font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid var(--b); background:white; color:var(--muted); }
+    .pill.warn { border-color:#f59e0b; color:#92400e; background:#fffbeb; }
 
     .rightTop {
-      display:flex; justify-content:space-between; align-items:center; gap:10px;
+      display:flex; justify-content:space-between; align-items:flex-start; gap:10px;
       padding:12px; border-bottom:1px solid var(--b); background:white;
-      position:sticky; top:0; z-index:6;
+      position:sticky; top:0; z-index:8;
     }
     .rightTop .date { font-size:13px; color:var(--muted); }
+
+    /* Group header row */
+    .groupRow td{
+      background:#f8fafc;
+      color:#0f172a;
+      font-weight:800;
+      font-size:12px;
+      letter-spacing:.2px;
+      border-bottom:1px solid var(--b);
+      padding:10px;
+    }
+    .groupRow td span{ color:var(--muted); font-weight:600; margin-left:8px; }
+
+    /* ===== Modals ===== */
+    .modalBackdrop{
+      position:fixed; inset:0; background:rgba(15,23,42,.45);
+      display:none; align-items:center; justify-content:center;
+      padding:16px; z-index:50;
+    }
+    .modalBackdrop.show{ display:flex; }
+    .modal{
+      width:min(980px, 100%);
+      background:white;
+      border:1px solid var(--b);
+      border-radius:16px;
+      box-shadow: 0 20px 60px rgba(15,23,42,.25);
+      overflow:hidden;
+    }
+    .modal header{
+      position:relative;
+      padding:12px 14px;
+      border-bottom:1px solid var(--b);
+      background:white;
+      top:auto;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .modal header h3{ margin:0; font-size:14px; }
+    .modal .body{ padding:14px; display:grid; gap:12px; }
+    .btn{
+      border:1px solid var(--b);
+      border-radius:12px;
+      padding:9px 12px;
+      background:white;
+      cursor:pointer;
+      font-size:13px;
+    }
+    .btn:hover{ background:#f1f5f9; }
+    .btn.primary{ background:#0f172a; color:white; border-color:#0f172a; }
+    .btn.primary:hover{ background:#111827; }
+    .btn.danger{ color:#ef4444; }
+
+    .modalGrid2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    @media (max-width: 1100px){
+      .wrap{ grid-template-columns:1fr; }
+      thead th{ top:0; }
+      .rightTop{ position:relative; }
+      .car{ width:auto; }
+      .pendCol{ width:auto; }
+    }
+
+    .listBox{
+      border:1px solid var(--b);
+      border-radius:12px;
+      padding:10px;
+      background:white;
+    }
+    .listBox h3{ margin:0 0 8px 0; font-size:13px; }
+    .miniNote{ font-size:12px; color:var(--muted); margin-top:6px; }
+
+    .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+    .full { grid-column: 1 / -1; }
+    textarea{ resize:vertical; min-height:64px; }
 
     .toast {
       position:fixed; bottom:14px; right:14px;
       background:#0f172a; color:white; padding:10px 12px;
       border-radius:12px; opacity:0; transform:translateY(6px);
       transition:.2s; font-size:13px;
-      max-width:min(420px, calc(100vw - 28px));
+      max-width:min(760px, calc(100vw - 28px));
+      white-space:pre-wrap;
+      z-index:60;
     }
     .toast.show { opacity:1; transform:translateY(0); }
-
-    @media (max-width: 980px){
-      .wrap{ grid-template-columns:1fr; }
-      thead th{ top:0; }
-      .rightTop{ position:relative; }
-    }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Agenda de Viaturas</h1>
-    <div class="sub">
-      Pendentes (globais) → arrasta para atribuir a um carro no dia selecionado. Ao atribuir, o trabalho sai dos pendentes.
-    </div>
-  </header>
+<header>
+  <h1>Agenda de Viaturas</h1>
+  <div class="sub">
+    Pendentes ficam na tabela inicial (coluna esquerda). Gestão de Motoristas/Viaturas em janelas.
+  </div>
+</header>
 
-  <div class="wrap">
-    <!-- LEFT: Global pending jobs -->
-    <div class="panel">
-      <h2>Trabalhos (por atribuir) — Pendentes</h2>
-      <div class="content">
-        <div class="toolbar" style="margin-bottom:10px;">
-          <input id="jobTitle" placeholder="Trabalho (ex: Obra X)" />
-          <input id="jobQty" placeholder="Qtd (ex: 12 m³)" />
-          <input id="jobTime" placeholder="Hora (ex: 08:00)" />
-          <input id="jobDue" type="date" title="Data limite" />
-          <button id="addJob">Adicionar</button>
-          <button id="resetPending" title="Repõe os 3 exemplos">Repor exemplos</button>
-        </div>
+<div class="wrap">
+  <!-- LEFT -->
+  <div class="panel">
+    <div class="rightTop" style="position:relative; top:auto; z-index:auto; border-bottom:1px solid var(--b);">
+      <div style="display:flex; gap:10px; align-items:center;">
+        <strong style="font-size:14px;">Pendentes globais</strong>
+        <span class="date" style="font-size:12px; color:var(--muted);">Arrasta para atribuir ao dia selecionado</span>
+      </div>
 
-        <div id="jobs" class="jobs"></div>
-
-        <div style="margin-top:10px; color:var(--muted); font-size:12px;">
-          Dica: podes <strong>arrastar de volta</strong> do carro para esta lista para tornar pendente novamente.
-        </div>
+      <div class="toolbar" style="justify-content:flex-end;">
+        <button id="openPendingEditor" class="btn">Editar / Adicionar</button>
+        <button id="openDrivers" class="btn">Motoristas</button>
+        <button id="openCars" class="btn">Viaturas</button>
       </div>
     </div>
 
-    <!-- RIGHT: Schedule (per selected day) -->
-    <div class="panel">
-      <div class="rightTop">
-        <div style="display:flex; gap:10px; align-items:center;">
-          <strong style="font-size:14px;">Planeamento</strong>
-          <span class="date" id="dateLabel"></span>
-        </div>
-        <div class="toolbar">
-          <select id="daySelect" title="Selecionar dia"></select>
-          <button id="clearDay" title="Limpa atribuições só deste dia">Limpar dia</button>
-        </div>
-      </div>
-
-      <div class="content" style="padding:0;">
-        <table>
-          <thead>
-            <tr>
-              <th class="car">Carro</th>
-              <th>Trabalhos atribuídos (dia selecionado)</th>
-            </tr>
-          </thead>
-          <tbody id="rows"></tbody>
-        </table>
-      </div>
+    <div class="content">
+      <div id="pendingLane" class="pendLane"></div>
+      <div class="miniNote">Os pendentes aparecem sempre (independente do dia). Ao arrastar para uma viatura, sai desta lista.</div>
     </div>
   </div>
 
-  <div id="toast" class="toast"></div>
+  <!-- RIGHT -->
+  <div class="panel">
+    <div class="rightTop">
+      <div style="display:flex; gap:10px; align-items:center;">
+        <strong style="font-size:14px;">Planeamento</strong>
+        <span class="date" id="dateLabel"></span>
+      </div>
 
-  <script>
-    // -----------------------------
-    // Config
-    // -----------------------------
-    const CARS = [
-      "00GJ92","04VA73","10BH15","15VQ28","16AZ06",
-      "18AI61","18AI62","28US30","3864ZR","3865ZR"
+      <div class="toolbar" style="justify-content:flex-end;">
+        <select id="daySelect" title="Selecionar dia"></select>
+        <button id="clearDay" title="Limpa atribuições só deste dia">Limpar dia</button>
+      </div>
+    </div>
+
+    <div class="content" style="padding:0;">
+      <table>
+        <thead>
+        <tr>
+          <th class="car">Carro / Motorista</th>
+          <th>Trabalhos atribuídos (dia selecionado)</th>
+        </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Pending Editor -->
+<div id="pendingEditorBackdrop" class="modalBackdrop" role="dialog" aria-modal="true">
+  <div class="modal">
+    <header>
+      <h3>Editar / Adicionar pendentes globais</h3>
+      <button id="closePendingEditor" class="btn">Fechar</button>
+    </header>
+
+    <div class="body">
+      <div class="listBox">
+        <h3>Adicionar novo pendente</h3>
+        <div class="grid2">
+          <input id="jobTitle" placeholder="Trabalho (ex: Obra X)" class="full" />
+          <input id="jobWorkNo" placeholder="N.º Obra" />
+          <select id="jobCarType" title="Tipo de carro"></select>
+
+          <input id="jobLoad" placeholder="Local de Carga" />
+          <input id="jobUnload" placeholder="Local de Descarga" />
+
+          <input id="jobQty" placeholder="Qtd (ex: 12 m³ / 24 t)" />
+          <input id="jobTime" placeholder="Hora (ex: 08:00)" />
+
+          <input id="jobDue" type="date" title="Data limite" />
+          <button id="addJob" class="btn primary">Adicionar</button>
+
+          <textarea id="jobNotes" class="full" placeholder="Observações"></textarea>
+
+          <button id="resetPending" class="btn full" title="Repõe 3 exemplos">Repor 3 exemplos</button>
+        </div>
+      </div>
+
+      <div class="listBox">
+        <h3>Lista (editar por item)</h3>
+        <div id="pendingEditList"></div>
+        <div class="miniNote">Guardar/Apagar aqui afeta apenas os pendentes (o histórico do planeamento não é apagado).</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Drivers -->
+<div id="driversBackdrop" class="modalBackdrop" role="dialog" aria-modal="true">
+  <div class="modal">
+    <header>
+      <h3>Motoristas (ativos)</h3>
+      <button id="closeDrivers" class="btn">Fechar</button>
+    </header>
+    <div class="body">
+      <div class="listBox">
+        <h3>Adicionar / Remover</h3>
+        <div class="toolbar" style="margin-bottom:10px;">
+          <input id="newDriver" placeholder="Nome (ex: Motorista F)" />
+          <button id="addDriverBtn" class="btn primary">Adicionar</button>
+        </div>
+        <div class="toolbar">
+          <select id="removeDriverSelect" title="Selecionar motorista para remover"></select>
+          <button id="removeDriverBtn" class="btn danger" title="Remove da lista ativa (histórico mantido)">Remover</button>
+        </div>
+        <div class="miniNote" style="margin-top:8px;">
+          Remover não apaga histórico: dias antigos continuam a mostrar o motorista atribuído.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Cars -->
+<div id="carsBackdrop" class="modalBackdrop" role="dialog" aria-modal="true">
+  <div class="modal">
+    <header>
+      <h3>Viaturas (ativas)</h3>
+      <button id="closeCars" class="btn">Fechar</button>
+    </header>
+    <div class="body">
+      <div class="modalGrid2">
+        <div class="listBox">
+          <h3>Adicionar viatura</h3>
+          <div class="toolbar" style="margin-bottom:8px;">
+            <input id="newCar" placeholder="Matrícula (ex: 00GJ92)" />
+            <select id="newCarType" title="Tipo de viatura"></select>
+          </div>
+          <div class="toolbar" style="margin-bottom:8px;">
+            <select id="newCarDefaultDriver" style="flex:1;" title="Motorista por defeito"></select>
+          </div>
+          <button id="addCar" class="btn primary" style="width:100%;">Adicionar</button>
+        </div>
+
+        <div class="listBox">
+          <h3>Remover viatura</h3>
+          <div class="toolbar">
+            <select id="removeCarSelect" title="Selecionar viatura para remover"></select>
+            <button id="removeCarBtn" class="btn danger" title="Remove da lista ativa (não apaga histórico)">Remover</button>
+          </div>
+          <div class="miniNote" style="margin-top:8px;">
+            Remover viatura não apaga histórico: dias antigos continuam a ter as atribuições e motorista desse dia.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+  // ===== Config =====
+  const CAR_TYPES_ORDER = ["3 e 4 eixo","porta maquinas","camião grua","cisterna","basculante"];
+
+  // ===== Helpers =====
+  const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
+  const $ = (id) => document.getElementById(id);
+  const toast = (msg) => {
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(window.__toastTimer);
+    window.__toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
+  };
+  function safeParse(s){ try { return JSON.parse(s); } catch { return null; } }
+  function escapeHtml(str){
+    return String(str ?? "").replace(/[&<>"']/g, (m) => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[m]));
+  }
+  function normalizeCarId(s){ return String(s || "").trim().toUpperCase().replace(/\s+/g, ""); }
+  function normalizeDriverName(s){ return String(s || "").trim().replace(/\s+/g, " "); }
+
+  // Date helpers
+  function formatDayKey(d){
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,"0");
+    const dd = String(d.getDate()).padStart(2,"0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  function dayLabel(iso){
+    const d = new Date(iso + "T00:00:00");
+    return d.toLocaleDateString("pt-PT", { weekday:"short", day:"2-digit", month:"2-digit", year:"numeric" });
+  }
+  function toPtDate(iso){
+    if (!iso) return "";
+    const [y,m,d] = iso.split("-");
+    if (!y || !m || !d) return iso;
+    return `${d}/${m}/${y}`;
+  }
+  function addDaysIso(iso, days){
+    const d = new Date(iso + "T00:00:00");
+    d.setDate(d.getDate() + days);
+    return formatDayKey(d);
+  }
+  function prevDayIso(iso){ return addDaysIso(iso, -1); }
+  function applyDueClass(el, dueIso){
+    const todayKey = formatDayKey(new Date());
+    if (!dueIso) return;
+    if (dueIso < todayKey) el.classList.add("overdue");
+    else if (dueIso === todayKey) el.classList.add("dueToday");
+  }
+
+  // ===== Storage keys =====
+  const PENDING_KEY = "agenda_pending_v15";
+  const CARS_KEY    = "agenda_cars_active_v14";
+  const DRIVERS_KEY = "agenda_drivers_active_v10";
+  const DAY_KEY     = (day) => `agenda_day_v15_${day}`;
+
+  // ===== Defaults =====
+  const DEFAULT_DRIVERS = ["Motorista A","Motorista B","Motorista C","Motorista D"];
+  const DEFAULT_CARS = [
+    { carId:"00GJ92", carType:"3 e 4 eixo", defaultDriver:"Motorista A" },
+    { carId:"04VA73", carType:"3 e 4 eixo", defaultDriver:"Motorista A" },
+    { carId:"10BH15", carType:"cisterna",  defaultDriver:"Motorista B" },
+    { carId:"15VQ28", carType:"basculante",defaultDriver:"Motorista B" },
+    { carId:"16AZ06", carType:"camião grua",defaultDriver:"Motorista C" },
+  ];
+  function seedPendingExamples(){
+    const todayKey = formatDayKey(new Date());
+    return [
+      { id: uid(), title:"Obra A (Betão)", workNo:"OB-1021", carType:"3 e 4 eixo", load:"Central Tojal", unload:"Obra A - Lisboa", qty:"10 m³", time:"08:00", due: todayKey, notes:"Cliente pede chegada antes das 08:30." },
+      { id: uid(), title:"Transporte equipamento", workNo:"PM-55", carType:"porta maquinas", load:"Parque Alenquer", unload:"Obra B - Torres Vedras", qty:"", time:"09:30", due: addDaysIso(todayKey, 1), notes:"Confirmar acesso ao estaleiro." },
+      { id: uid(), title:"Areia / Brita", workNo:"BAS-88", carType:"basculante", load:"Pedreira Sesimbra", unload:"Armazém Almada", qty:"24 t", time:"11:00", due: addDaysIso(todayKey, 2), notes:"Verificar janela de descarga." },
     ];
+  }
 
-    // Helpers
-    const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
-    const $ = (id) => document.getElementById(id);
-    const toast = (msg) => {
-      const t = $("toast");
-      t.textContent = msg;
-      t.classList.add("show");
-      clearTimeout(window.__toastTimer);
-      window.__toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
-    };
-    function safeParse(s){ try { return JSON.parse(s); } catch { return null; } }
-    function escapeHtml(str){
-      return String(str).replace(/[&<>"']/g, (m) => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-      }[m]));
+  // ===== Load/Save =====
+  function loadActiveDrivers(){
+    const raw = localStorage.getItem(DRIVERS_KEY);
+    if (!raw) { localStorage.setItem(DRIVERS_KEY, JSON.stringify(DEFAULT_DRIVERS)); return [...DEFAULT_DRIVERS]; }
+    try {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || parsed.length === 0) return [...DEFAULT_DRIVERS];
+      return parsed.map(normalizeDriverName).filter(Boolean);
+    } catch { return [...DEFAULT_DRIVERS]; }
+  }
+  function saveActiveDrivers(list){ localStorage.setItem(DRIVERS_KEY, JSON.stringify(list)); }
+
+  function loadActiveCars(){
+    const raw = localStorage.getItem(CARS_KEY);
+    if (!raw) { localStorage.setItem(CARS_KEY, JSON.stringify(DEFAULT_CARS)); return [...DEFAULT_CARS]; }
+    try {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || parsed.length === 0) return [...DEFAULT_CARS];
+      return parsed.map(x => ({
+        carId: normalizeCarId(x.carId),
+        carType: (x.carType && String(x.carType).trim()) || "3 e 4 eixo",
+        defaultDriver: normalizeDriverName(x.defaultDriver || DEFAULT_DRIVERS[0])
+      })).filter(x => x.carId);
+    } catch { return [...DEFAULT_CARS]; }
+  }
+  function saveActiveCars(list){ localStorage.setItem(CARS_KEY, JSON.stringify(list)); }
+
+  function loadPending(){
+    const raw = localStorage.getItem(PENDING_KEY);
+    if (!raw) { const seeded = seedPendingExamples(); localStorage.setItem(PENDING_KEY, JSON.stringify(seeded)); return seeded; }
+    try { const parsed = JSON.parse(raw); return Array.isArray(parsed) ? parsed : seedPendingExamples(); }
+    catch { return seedPendingExamples(); }
+  }
+  function savePending(list){ localStorage.setItem(PENDING_KEY, JSON.stringify(list)); }
+
+  function loadDayPlan(dayKey){
+    const raw = localStorage.getItem(DAY_KEY(dayKey));
+    if (!raw) return { assignedByCar: {}, driverByCar: {}, driverManualByCar: {} };
+    try {
+      const parsed = JSON.parse(raw);
+      parsed.assignedByCar = parsed.assignedByCar && typeof parsed.assignedByCar === "object" ? parsed.assignedByCar : {};
+      parsed.driverByCar = parsed.driverByCar && typeof parsed.driverByCar === "object" ? parsed.driverByCar : {};
+      parsed.driverManualByCar = parsed.driverManualByCar && typeof parsed.driverManualByCar === "object" ? parsed.driverManualByCar : {};
+      return parsed;
+    } catch { return { assignedByCar: {}, driverByCar: {}, driverManualByCar: {} }; }
+  }
+  function saveDayPlan(dayKey, plan){ localStorage.setItem(DAY_KEY(dayKey), JSON.stringify(plan)); }
+
+  // ===== State =====
+  let activeDrivers = loadActiveDrivers();
+  let activeCars = loadActiveCars();
+  let pending = loadPending();
+
+  const today = new Date();
+  let currentDayKey = formatDayKey(today);
+  let dayPlan = loadDayPlan(currentDayKey);
+
+  // ===== Select options =====
+  function fillCarTypesSelect(selectEl, selected){
+    selectEl.innerHTML = "";
+    CAR_TYPES_ORDER.forEach(t => {
+      const opt = document.createElement("option");
+      opt.value = t;
+      opt.textContent = t;
+      selectEl.appendChild(opt);
+    });
+    selectEl.value = selected && CAR_TYPES_ORDER.includes(selected) ? selected : CAR_TYPES_ORDER[0];
+  }
+  function renderDriverSelectOptions(sel, selectedValue){
+    sel.innerHTML = "";
+    const activeSet = new Set(activeDrivers);
+    const options = [...activeDrivers].sort((a,b)=>a.localeCompare(b));
+    if (selectedValue && !activeSet.has(selectedValue)){
+      const opt = document.createElement("option");
+      opt.value = selectedValue;
+      opt.textContent = `${selectedValue} (Inativo)`;
+      sel.appendChild(opt);
+    }
+    options.forEach(d => {
+      if (d === selectedValue && !activeSet.has(selectedValue)) return;
+      const opt = document.createElement("option");
+      opt.value = d;
+      opt.textContent = d;
+      sel.appendChild(opt);
+    });
+    if (sel.options.length === 0){
+      const fallback = selectedValue || "Sem motoristas";
+      const opt = document.createElement("option");
+      opt.value = fallback;
+      opt.textContent = fallback;
+      sel.appendChild(opt);
+    }
+    sel.value = selectedValue || sel.options[0].value;
+  }
+  function renderNewCarDefaultDriverSelect(){
+    renderDriverSelectOptions($("newCarDefaultDriver"), activeDrivers[0] || "Motorista A");
+  }
+
+  // ===== Driver logic =====
+  function activeCarIds(){ return activeCars.map(c => c.carId); }
+  function carTypeOf(carId){
+    const c = activeCars.find(x => x.carId === carId);
+    return c?.carType || "3 e 4 eixo";
+  }
+  function defaultDriverFor(carId){
+    const found = activeCars.find(c => c.carId === carId);
+    return found ? found.defaultDriver : (activeDrivers[0] || "Motorista A");
+  }
+  function getInheritedDriverFromPreviousDay(carId, dayKey){
+    const prevKey = prevDayIso(dayKey);
+    const prevPlan = loadDayPlan(prevKey);
+    const prevDriver = prevPlan.driverByCar?.[carId];
+    if (prevDriver) return prevDriver;
+    return defaultDriverFor(carId);
+  }
+  function ensureDriverForDay(carId){
+    dayPlan.driverByCar = dayPlan.driverByCar || {};
+    dayPlan.driverManualByCar = dayPlan.driverManualByCar || {};
+    if (dayPlan.driverByCar[carId]) return dayPlan.driverByCar[carId];
+    const inherited = getInheritedDriverFromPreviousDay(carId, currentDayKey);
+    dayPlan.driverByCar[carId] = inherited;
+    dayPlan.driverManualByCar[carId] = false;
+    saveDayPlan(currentDayKey, dayPlan);
+    return inherited;
+  }
+  function setDriverForDayManual(carId, driver){
+    dayPlan.driverByCar = dayPlan.driverByCar || {};
+    dayPlan.driverManualByCar = dayPlan.driverManualByCar || {};
+    dayPlan.driverByCar[carId] = driver;
+    dayPlan.driverManualByCar[carId] = true;
+    saveDayPlan(currentDayKey, dayPlan);
+    renderAll();
+    maybeAlertDriverConflicts();
+  }
+
+  // ===== Cars for day =====
+  function carsForSelectedDay(){
+    const set = new Set(activeCarIds());
+    Object.keys(dayPlan.assignedByCar || {}).forEach(k => set.add(k));
+    Object.keys(dayPlan.driverByCar || {}).forEach(k => set.add(k));
+    Object.keys(dayPlan.driverManualByCar || {}).forEach(k => set.add(k));
+    return Array.from(set).sort((a,b)=>a.localeCompare(b));
+  }
+
+  // ===== Conflicts =====
+  function getDriverConflictsForDay(){
+    const cars = carsForSelectedDay();
+    const map = new Map();
+    cars.forEach(carId => {
+      const drv = ensureDriverForDay(carId);
+      if (!drv) return;
+      if (!map.has(drv)) map.set(drv, []);
+      map.get(drv).push(carId);
+    });
+    const conflicts = [];
+    for (const [driver, carIds] of map.entries()){
+      if (carIds.length > 1) conflicts.push({ driver, carIds: [...carIds].sort((a,b)=>a.localeCompare(b)) });
+    }
+    return conflicts.sort((a,b)=>a.driver.localeCompare(b.driver));
+  }
+  function maybeAlertDriverConflicts(){
+    const conflicts = getDriverConflictsForDay();
+    if (conflicts.length === 0) return;
+    const lines = conflicts.map(c => `⚠️ ${c.driver} está em: ${c.carIds.join(", ")}`);
+    toast(`Conflito de motoristas (${dayLabel(currentDayKey)}):\n` + lines.join("\n"));
+  }
+
+  // ===== UI cards =====
+  function jobCard(job){
+    const div = document.createElement("div");
+    div.className = "job";
+    div.draggable = true;
+    div.dataset.jobId = job.id;
+    applyDueClass(div, job.due);
+
+    const lineA = [job.workNo ? `N.º Obra: ${escapeHtml(job.workNo)}` : "", job.carType ? `Tipo: ${escapeHtml(job.carType)}` : ""].filter(Boolean).join(" • ");
+    const lineB = [job.load ? `Carga: ${escapeHtml(job.load)}` : "", job.unload ? `Descarga: ${escapeHtml(job.unload)}` : ""].filter(Boolean).join(" • ");
+
+    div.innerHTML = `
+      <div class="title">${escapeHtml(job.title)}</div>
+      <div class="meta">
+        ${job.qty ? `<span class="pill">${escapeHtml(job.qty)}</span>` : ""}
+        ${job.time ? `<span class="pill">${escapeHtml(job.time)}</span>` : ""}
+        ${job.due ? `<span class="pill">Limite: ${escapeHtml(toPtDate(job.due))}</span>` : ""}
+        ${job.carType ? `<span class="pill warn">${escapeHtml(job.carType)}</span>` : ""}
+
+        <span class="jobActions">
+          <button class="iconBtn editBtn" title="Editar">Editar</button>
+          <button class="iconBtn danger delBtn" title="Apagar">Apagar</button>
+        </span>
+      </div>
+      ${lineA ? `<div class="meta" style="margin-top:6px;">${escapeHtml(lineA)}</div>` : ""}
+      ${lineB ? `<div class="meta" style="margin-top:4px;">${escapeHtml(lineB)}</div>` : ""}
+      ${job.notes ? `<div class="notes">${escapeHtml(job.notes)}</div>` : ""}
+    `;
+
+    div.addEventListener("dragstart", (e) => {
+      if (e.target && (e.target.classList.contains("editBtn") || e.target.classList.contains("delBtn"))) { e.preventDefault(); return; }
+      e.dataTransfer.setData("text/plain", JSON.stringify({ jobId: job.id, from: "pending" }));
+      e.dataTransfer.effectAllowed = "move";
+    });
+
+    div.querySelector(".editBtn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      openPendingEditor(job.id);
+    });
+    div.querySelector(".delBtn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (!confirm(`Apagar o trabalho pendente "${job.title}"?\n\nIsto só remove da lista de pendentes (não altera histórico já atribuído).`)) return;
+      pending = pending.filter(j => j.id !== job.id);
+      savePending(pending);
+      renderAll();
+      toast("Trabalho pendente apagado.");
+    });
+
+    return div;
+  }
+
+  function assignedChip(job, carId){
+    const wrap = document.createElement("div");
+    wrap.className = "assigned";
+    wrap.draggable = true;
+    wrap.dataset.jobId = job.id;
+    wrap.dataset.carId = carId;
+
+    const typeMismatch = job.carType && carTypeOf(carId) && (job.carType !== carTypeOf(carId));
+
+    wrap.innerHTML = `
+      <div class="txt">
+        <strong>${escapeHtml(job.title)}</strong>
+        ${job.time ? ` <span class="pill">${escapeHtml(job.time)}</span>` : ""}
+        ${job.qty ? ` <span class="pill">${escapeHtml(job.qty)}</span>` : ""}
+        ${job.workNo ? ` <span class="pill">N.º ${escapeHtml(job.workNo)}</span>` : ""}
+        ${job.due ? ` <span class="pill">Limite: ${escapeHtml(toPtDate(job.due))}</span>` : ""}
+        ${job.carType ? ` <span class="pill ${typeMismatch ? "warn":""}">${escapeHtml(job.carType)}</span>` : ""}
+        ${typeMismatch ? ` <span class="pill warn">⚠ tipo diferente (${escapeHtml(carTypeOf(carId))})</span>` : ""}
+        ${job.load ? ` <span class="pill">Carga: ${escapeHtml(job.load)}</span>` : ""}
+        ${job.unload ? ` <span class="pill">Descarga: ${escapeHtml(job.unload)}</span>` : ""}
+        ${job.notes ? ` <span class="pill">Obs</span>` : ""}
+      </div>
+      <button class="rm" title="Remover (volta a pendente)">&times;</button>
+    `;
+    wrap.querySelector(".rm").addEventListener("click", () => unassignToPending(carId, job.id));
+    wrap.addEventListener("dragstart", (e) => {
+      e.dataTransfer.setData("text/plain", JSON.stringify({ jobId: job.id, from: "car", carId }));
+      e.dataTransfer.effectAllowed = "move";
+    });
+    return wrap;
+  }
+
+  // ===== Render Pending Lane (initial table left) =====
+  function renderPendingLane(){
+    const lane = $("pendingLane");
+    lane.innerHTML = "";
+
+    if (pending.length === 0){
+      const hint = document.createElement("div");
+      hint.className = "pendHint";
+      hint.textContent = "Sem pendentes. Clique em “Editar / Adicionar”.";
+      lane.appendChild(hint);
+      return;
     }
 
-    // Date helpers
-    function formatDayKey(d){
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth()+1).padStart(2,"0");
-      const dd = String(d.getDate()).padStart(2,"0");
-      return `${yyyy}-${mm}-${dd}`; // YYYY-MM-DD
-    }
-    function dayLabel(iso){
-      const d = new Date(iso + "T00:00:00");
-      return d.toLocaleDateString("pt-PT", { weekday:"short", day:"2-digit", month:"2-digit", year:"numeric" });
-    }
-    function toPtDate(iso){
-      if (!iso) return "";
-      const [y,m,d] = iso.split("-");
-      if (!y || !m || !d) return iso;
-      return `${d}/${m}/${y}`;
-    }
+    const sorted = [...pending].sort((a,b) => (a.due||"9999-12-31").localeCompare(b.due||"9999-12-31"));
+    sorted.forEach(j => lane.appendChild(jobCard(j)));
 
-    function applyDueClass(el, dueIso){
-      const todayKey = formatDayKey(new Date());
-      if (!dueIso) return;
-      if (dueIso < todayKey) el.classList.add("overdue");
-      else if (dueIso === todayKey) el.classList.add("dueToday");
-    }
-
-    // -----------------------------
-    // Storage model
-    // - Pendentes: globais (independentes do dia)
-    // - Planeamento: por dia
-    // -----------------------------
-    const PENDING_KEY = "agenda_pending_v1";         // global
-    const DAY_KEY = (day) => `agenda_day_v1_${day}`; // per day
-
-    function seedPendingExamples(){
-      // Apenas 3 exemplos (não replica por dia)
-      const todayKey = formatDayKey(new Date());
-      const d1 = todayKey;
-      const d2 = addDaysIso(todayKey, 1);
-      const d3 = addDaysIso(todayKey, 2);
-
-      return [
-        { id: uid(), title:"Obra A", qty:"10 m³", time:"08:00", due:d1 },
-        { id: uid(), title:"Obra B", qty:"6 m³",  time:"09:30", due:d2 },
-        { id: uid(), title:"Bombeamento C", qty:"18 m³", time:"11:00", due:d3 },
-      ];
-    }
-
-    function addDaysIso(iso, days){
-      const d = new Date(iso + "T00:00:00");
-      d.setDate(d.getDate() + days);
-      return formatDayKey(d);
-    }
-
-    function loadPending(){
-      const raw = localStorage.getItem(PENDING_KEY);
-      if (!raw) {
-        const seeded = seedPendingExamples();
-        localStorage.setItem(PENDING_KEY, JSON.stringify(seeded));
-        return seeded;
+    // enable drop from car to pending
+    lane.addEventListener("dragover", (e) => { e.preventDefault(); lane.classList.add("is-over"); e.dataTransfer.dropEffect = "move"; });
+    lane.addEventListener("dragleave", () => lane.classList.remove("is-over"));
+    lane.addEventListener("drop", (e) => {
+      e.preventDefault();
+      lane.classList.remove("is-over");
+      const payload = safeParse(e.dataTransfer.getData("text/plain"));
+      if (payload?.from === "car" && payload.jobId && payload.carId){
+        unassignToPending(payload.carId, payload.jobId);
       }
-      try {
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : seedPendingExamples();
-      } catch {
-        return seedPendingExamples();
-      }
-    }
+    });
+  }
 
-    function savePending(list){
-      localStorage.setItem(PENDING_KEY, JSON.stringify(list));
-    }
+  // ===== Planning rows =====
+  function renderDayRows(){
+    const rows = $("rows");
+    rows.innerHTML = "";
 
-    function loadDayPlan(dayKey){
-      const raw = localStorage.getItem(DAY_KEY(dayKey));
-      if (!raw) return { assignedByCar: {} };
-      try {
-        const parsed = JSON.parse(raw);
-        parsed.assignedByCar = parsed.assignedByCar && typeof parsed.assignedByCar === "object" ? parsed.assignedByCar : {};
-        return parsed;
-      } catch {
-        return { assignedByCar: {} };
-      }
-    }
+    const activeIds = new Set(activeCarIds());
+    const conflicts = getDriverConflictsForDay();
+    const conflictDrivers = new Set(conflicts.map(c => c.driver));
+    const conflictCars = new Set(conflicts.flatMap(c => c.carIds));
 
-    function saveDayPlan(dayKey, plan){
-      localStorage.setItem(DAY_KEY(dayKey), JSON.stringify(plan));
-    }
+    const allCars = carsForSelectedDay().map(carId => {
+      const isActive = activeIds.has(carId);
+      const type = isActive ? carTypeOf(carId) : (carTypeOf(carId) || "3 e 4 eixo");
+      return { carId, isActive, type };
+    });
 
-    // Current selection
-    const today = new Date();
-    let currentDayKey = formatDayKey(today);
+    const byType = new Map();
+    CAR_TYPES_ORDER.forEach(t => byType.set(t, []));
+    allCars.forEach(c => {
+      const t = CAR_TYPES_ORDER.includes(c.type) ? c.type : CAR_TYPES_ORDER[0];
+      byType.get(t).push(c);
+    });
 
-    let pending = loadPending();                 // global list
-    let dayPlan = loadDayPlan(currentDayKey);    // per selected day
+    CAR_TYPES_ORDER.forEach(typeName => {
+      const list = (byType.get(typeName) || []).sort((a,b)=>a.carId.localeCompare(b.carId));
+      if (list.length === 0) return;
 
-    // -----------------------------
-    // UI render
-    // -----------------------------
-    function renderDayPicker(){
-      const sel = $("daySelect");
-      sel.innerHTML = "";
-      const base = new Date();
-      for (let offset=-7; offset<=7; offset++){
-        const d = new Date(base);
-        d.setDate(base.getDate() + offset);
-        const k = formatDayKey(d);
-        const opt = document.createElement("option");
-        opt.value = k;
-        opt.textContent = dayLabel(k);
-        if (k === currentDayKey) opt.selected = true;
-        sel.appendChild(opt);
-      }
-      $("dateLabel").textContent = dayLabel(currentDayKey);
-    }
+      const gtr = document.createElement("tr");
+      gtr.className = "groupRow";
+      const gtd = document.createElement("td");
+      gtd.colSpan = 2;
+      gtd.innerHTML = `${escapeHtml(typeName)} <span>(${list.length})</span>`;
+      gtr.appendChild(gtd);
+      rows.appendChild(gtr);
 
-    function jobCard(job){
-      const div = document.createElement("div");
-      div.className = "job";
-      div.draggable = true;
-      div.dataset.jobId = job.id;
+      list.forEach(({carId, isActive, type}) => {
+        const driverValue = ensureDriverForDay(carId);
+        const isManual = !!(dayPlan.driverManualByCar && dayPlan.driverManualByCar[carId]);
+        const hasConflict = conflictCars.has(carId) && conflictDrivers.has(driverValue);
 
-      applyDueClass(div, job.due);
-
-      div.innerHTML = `
-        <div class="title">${escapeHtml(job.title)}</div>
-        <div class="meta">
-          ${job.qty ? `<span class="pill">${escapeHtml(job.qty)}</span>` : ""}
-          ${job.time ? `<span class="pill">${escapeHtml(job.time)}</span>` : ""}
-          ${job.due ? `<span class="pill">Limite: ${escapeHtml(toPtDate(job.due))}</span>` : ""}
-        </div>
-      `;
-
-      div.addEventListener("dragstart", (e) => {
-        e.dataTransfer.setData("text/plain", JSON.stringify({ jobId: job.id, from: "pending" }));
-        e.dataTransfer.effectAllowed = "move";
-      });
-
-      return div;
-    }
-
-    function assignedChip(job, carId){
-      const wrap = document.createElement("div");
-      wrap.className = "assigned";
-      wrap.draggable = true;
-      wrap.dataset.jobId = job.id;
-      wrap.dataset.carId = carId;
-
-      wrap.innerHTML = `
-        <div class="txt">
-          <strong>${escapeHtml(job.title)}</strong>
-          ${job.time ? ` <span class="pill">${escapeHtml(job.time)}</span>` : ""}
-          ${job.qty ? ` <span class="pill">${escapeHtml(job.qty)}</span>` : ""}
-          ${job.due ? ` <span class="pill">Limite: ${escapeHtml(toPtDate(job.due))}</span>` : ""}
-        </div>
-        <button class="rm" title="Remover (volta a pendente)">&times;</button>
-      `;
-
-      wrap.querySelector(".rm").addEventListener("click", () => {
-        unassignToPending(carId, job.id);
-      });
-
-      wrap.addEventListener("dragstart", (e) => {
-        e.dataTransfer.setData("text/plain", JSON.stringify({ jobId: job.id, from: "car", carId }));
-        e.dataTransfer.effectAllowed = "move";
-      });
-
-      return wrap;
-    }
-
-    function renderPending(){
-      const jobsDiv = $("jobs");
-      jobsDiv.innerHTML = "";
-
-      if (pending.length === 0){
-        const empty = document.createElement("div");
-        empty.className = "hint";
-        empty.style.color = "var(--muted)";
-        empty.textContent = "Sem pendentes.";
-        jobsDiv.appendChild(empty);
-        return;
-      }
-
-      // Ordena por data limite (mais cedo primeiro)
-      const sorted = [...pending].sort((a,b) => (a.due||"9999-12-31").localeCompare(b.due||"9999-12-31"));
-      sorted.forEach(j => jobsDiv.appendChild(jobCard(j)));
-    }
-
-    function renderDayRows(){
-      const rows = $("rows");
-      rows.innerHTML = "";
-
-      CARS.forEach(carId => {
         const tr = document.createElement("tr");
 
         const tdCar = document.createElement("td");
         tdCar.className = "car";
-        tdCar.textContent = carId;
+
+        const driverSelId = `drv_${carId}`;
+        const driverSel = document.createElement("select");
+        driverSel.id = driverSelId;
+        renderDriverSelectOptions(driverSel, driverValue);
+        if (hasConflict) driverSel.classList.add("conflictSelect");
+        driverSel.addEventListener("change", () => setDriverForDayManual(carId, driverSel.value));
+
+        tdCar.innerHTML = `
+          <div class="carLine">
+            <div class="carTop">
+              <span title="${escapeHtml(carId)}">${escapeHtml(carId)}</span>
+              <span class="typeTag">${escapeHtml(type)}</span>
+              ${isActive ? "" : `<span class="tagInactive">Inativa</span>`}
+            </div>
+            <div class="driverBlock">
+              <div class="driverRow"><label for="${escapeHtml(driverSelId)}">Motorista:</label></div>
+              <div class="driverInfoRow">
+                <span>${isManual ? "manual" : "herdado"}</span>
+                ${hasConflict ? `<span class="driverConflict">⚠ duplicado no dia</span>` : ``}
+              </div>
+            </div>
+          </div>
+        `;
+        tdCar.querySelector(".driverRow").appendChild(driverSel);
 
         const tdLane = document.createElement("td");
         const lane = document.createElement("div");
         lane.className = "lane";
         lane.dataset.carId = carId;
+        if (!isActive) lane.classList.add("disabled");
 
         const assigned = dayPlan.assignedByCar[carId] || [];
         if (assigned.length === 0){
           const hint = document.createElement("div");
           hint.className = "hint";
-          hint.textContent = "Larga aqui os trabalhos…";
+          hint.textContent = isActive ? "Larga aqui os trabalhos…" : "Viatura inativa (histórico apenas)";
           lane.appendChild(hint);
         } else {
           assigned.forEach(job => lane.appendChild(assignedChip(job, carId)));
         }
 
-        // Drop handling (assign/move within day)
         lane.addEventListener("dragover", (e) => {
+          if (!isActive) return;
           e.preventDefault();
           lane.classList.add("is-over");
           e.dataTransfer.dropEffect = "move";
         });
         lane.addEventListener("dragleave", () => lane.classList.remove("is-over"));
         lane.addEventListener("drop", (e) => {
+          if (!isActive) return;
           e.preventDefault();
           lane.classList.remove("is-over");
           const payload = safeParse(e.dataTransfer.getData("text/plain"));
           if (!payload?.jobId) return;
-
-          if (payload.from === "pending"){
-            assignFromPending(carId, payload.jobId);
-          } else if (payload.from === "car"){
-            moveBetweenCars(payload.carId, carId, payload.jobId);
-          }
+          if (payload.from === "pending") assignFromPending(carId, payload.jobId);
+          else if (payload.from === "car") moveBetweenCars(payload.carId, carId, payload.jobId);
         });
 
         tdLane.appendChild(lane);
@@ -420,143 +848,375 @@
         tr.appendChild(tdLane);
         rows.appendChild(tr);
       });
+    });
 
-      saveDayPlan(currentDayKey, dayPlan);
+    saveDayPlan(currentDayKey, dayPlan);
+  }
+
+  // ===== Actions (jobs) =====
+  function assignFromPending(carId, jobId){
+    const idx = pending.findIndex(j => j.id === jobId);
+    if (idx === -1) return;
+    const job = pending.splice(idx, 1)[0];
+    if (!dayPlan.assignedByCar[carId]) dayPlan.assignedByCar[carId] = [];
+    dayPlan.assignedByCar[carId].push(job);
+    ensureDriverForDay(carId);
+    savePending(pending);
+    saveDayPlan(currentDayKey, dayPlan);
+    renderAll();
+    maybeAlertDriverConflicts();
+    toast(`Atribuído a ${carId} (${dayLabel(currentDayKey)})`);
+  }
+  function unassignToPending(carId, jobId){
+    const arr = dayPlan.assignedByCar[carId] || [];
+    const idx = arr.findIndex(j => j.id === jobId);
+    if (idx === -1) return;
+    const job = arr.splice(idx, 1)[0];
+    pending.push(job);
+    if (arr.length === 0) delete dayPlan.assignedByCar[carId];
+    savePending(pending);
+    saveDayPlan(currentDayKey, dayPlan);
+    renderAll();
+    maybeAlertDriverConflicts();
+    toast(`Removido de ${carId} e voltou a pendente`);
+  }
+  function moveBetweenCars(fromCar, toCar, jobId){
+    if (fromCar === toCar) return;
+    const fromArr = dayPlan.assignedByCar[fromCar] || [];
+    const idx = fromArr.findIndex(j => j.id === jobId);
+    if (idx === -1) return;
+    const job = fromArr.splice(idx, 1)[0];
+    if (!dayPlan.assignedByCar[toCar]) dayPlan.assignedByCar[toCar] = [];
+    dayPlan.assignedByCar[toCar].push(job);
+    if (fromArr.length === 0) delete dayPlan.assignedByCar[fromCar];
+    ensureDriverForDay(toCar);
+    saveDayPlan(currentDayKey, dayPlan);
+    renderAll();
+    maybeAlertDriverConflicts();
+    toast(`Movido ${fromCar} → ${toCar}`);
+  }
+
+  // ===== Pending editor modal (simple list) =====
+  function openPendingEditor(focusJobId){
+    showModal("pendingEditorBackdrop");
+    renderPendingEditorList(focusJobId);
+  }
+  function renderPendingEditorList(focusJobId){
+    const host = $("pendingEditList");
+    host.innerHTML = "";
+    const sorted = [...pending].sort((a,b) => (a.due||"9999-12-31").localeCompare(b.due||"9999-12-31"));
+    if (sorted.length === 0){
+      const div = document.createElement("div");
+      div.className = "miniNote";
+      div.textContent = "Sem pendentes.";
+      host.appendChild(div);
+      return;
     }
 
-    function renderAll(){
-      $("dateLabel").textContent = dayLabel(currentDayKey);
-      renderPending();
-      renderDayRows();
-    }
+    sorted.forEach(job => {
+      const box = document.createElement("div");
+      box.className = "listBox";
+      applyDueClass(box, job.due);
 
-    // -----------------------------
-    // Actions
-    // -----------------------------
-    function assignFromPending(carId, jobId){
-      const idx = pending.findIndex(j => j.id === jobId);
-      if (idx === -1) return;
+      box.innerHTML = `
+        <div class="toolbar" style="justify-content:space-between; margin-bottom:8px;">
+          <strong style="font-size:13px;">${escapeHtml(job.title || "(sem título)")}</strong>
+          <div class="toolbar">
+            <button class="btn saveOne">Guardar</button>
+            <button class="btn danger delOne">Apagar</button>
+          </div>
+        </div>
 
-      const job = pending.splice(idx, 1)[0]; // remove from pending
-      if (!dayPlan.assignedByCar[carId]) dayPlan.assignedByCar[carId] = [];
-      dayPlan.assignedByCar[carId].push(job);
+        <div class="grid2">
+          <input class="fTitle full" value="${escapeHtml(job.title || "")}" placeholder="Trabalho" />
+          <input class="fWorkNo" value="${escapeHtml(job.workNo || "")}" placeholder="N.º Obra" />
+          <select class="fCarType"></select>
 
-      savePending(pending);
-      saveDayPlan(currentDayKey, dayPlan);
+          <input class="fLoad" value="${escapeHtml(job.load || "")}" placeholder="Local de Carga" />
+          <input class="fUnload" value="${escapeHtml(job.unload || "")}" placeholder="Local de Descarga" />
 
-      toast(`Atribuído a ${carId} (${dayLabel(currentDayKey)})`);
-      renderAll();
-    }
+          <input class="fQty" value="${escapeHtml(job.qty || "")}" placeholder="Qtd" />
+          <input class="fTime" value="${escapeHtml(job.time || "")}" placeholder="Hora" />
 
-    function unassignToPending(carId, jobId){
-      const arr = dayPlan.assignedByCar[carId] || [];
-      const idx = arr.findIndex(j => j.id === jobId);
-      if (idx === -1) return;
+          <input class="fDue" type="date" value="${escapeHtml(job.due || "")}" />
+          <div></div>
 
-      const job = arr.splice(idx, 1)[0]; // remove from car
-      pending.push(job);                 // back to pending
+          <textarea class="fNotes full" placeholder="Observações">${escapeHtml(job.notes || "")}</textarea>
+        </div>
+      `;
 
-      if (arr.length === 0) delete dayPlan.assignedByCar[carId];
+      const sel = box.querySelector(".fCarType");
+      fillCarTypesSelect(sel, job.carType || CAR_TYPES_ORDER[0]);
 
-      savePending(pending);
-      saveDayPlan(currentDayKey, dayPlan);
+      box.querySelector(".saveOne").addEventListener("click", () => {
+        const title = box.querySelector(".fTitle").value.trim();
+        const due = box.querySelector(".fDue").value;
+        if (!title) return toast("O trabalho tem de ter nome.");
+        if (!due) return toast("A data limite é obrigatória.");
 
-      toast(`Removido de ${carId} e voltou a pendente`);
-      renderAll();
-    }
+        const idx = pending.findIndex(j => j.id === job.id);
+        if (idx === -1) return;
 
-    function moveBetweenCars(fromCar, toCar, jobId){
-      if (fromCar === toCar) return;
+        pending[idx] = {
+          ...pending[idx],
+          title,
+          workNo: box.querySelector(".fWorkNo").value.trim(),
+          carType: box.querySelector(".fCarType").value,
+          load: box.querySelector(".fLoad").value.trim(),
+          unload: box.querySelector(".fUnload").value.trim(),
+          qty: box.querySelector(".fQty").value.trim(),
+          time: box.querySelector(".fTime").value.trim(),
+          due,
+          notes: box.querySelector(".fNotes").value.trim(),
+        };
+        savePending(pending);
+        renderAll();
+        renderPendingEditorList(job.id);
+        toast("Pendente guardado.");
+      });
 
-      const fromArr = dayPlan.assignedByCar[fromCar] || [];
-      const idx = fromArr.findIndex(j => j.id === jobId);
-      if (idx === -1) return;
+      box.querySelector(".delOne").addEventListener("click", () => {
+        if (!confirm(`Apagar o trabalho pendente "${job.title}"?\n\nIsto só remove da lista de pendentes (não altera histórico já atribuído).`)) return;
+        pending = pending.filter(j => j.id !== job.id);
+        savePending(pending);
+        renderAll();
+        renderPendingEditorList();
+        toast("Trabalho pendente apagado.");
+      });
 
-      const job = fromArr.splice(idx, 1)[0];
-      if (!dayPlan.assignedByCar[toCar]) dayPlan.assignedByCar[toCar] = [];
-      dayPlan.assignedByCar[toCar].push(job);
+      host.appendChild(box);
 
-      if (fromArr.length === 0) delete dayPlan.assignedByCar[fromCar];
-
-      saveDayPlan(currentDayKey, dayPlan);
-
-      toast(`Movido ${fromCar} → ${toCar}`);
-      renderAll();
-    }
-
-    // Drop back to pending list (unassign)
-    const jobsContainer = $("jobs");
-    jobsContainer.addEventListener("dragover", (e) => { e.preventDefault(); });
-    jobsContainer.addEventListener("drop", (e) => {
-      e.preventDefault();
-      const payload = safeParse(e.dataTransfer.getData("text/plain"));
-      if (payload?.from === "car" && payload.jobId && payload.carId){
-        unassignToPending(payload.carId, payload.jobId);
+      if (focusJobId && focusJobId === job.id){
+        setTimeout(() => box.scrollIntoView({ behavior:"smooth", block:"start" }), 50);
       }
     });
+  }
 
-    // Add pending job (global)
-    $("addJob").addEventListener("click", () => {
-      const title = $("jobTitle").value.trim();
-      const qty = $("jobQty").value.trim();
-      const time = $("jobTime").value.trim();
-      const due = $("jobDue").value; // YYYY-MM-DD
-
-      if (!title) return toast("Indica um nome de trabalho.");
-      if (!due) return toast("Indica a data limite.");
-
-      pending.unshift({ id: uid(), title, qty, time, due });
-      savePending(pending);
-
-      $("jobTitle").value = "";
-      $("jobQty").value = "";
-      $("jobTime").value = "";
-      $("jobDue").value = "";
-
-      toast("Adicionado aos pendentes");
-      renderAll();
-    });
-
-    // Enter para adicionar
-    ["jobTitle","jobQty","jobTime","jobDue"].forEach(id => {
-      $(id).addEventListener("keydown", (e) => {
-        if (e.key === "Enter") $("addJob").click();
-      });
-    });
-
-    // Repõe os 3 exemplos (pendentes globais)
-    $("resetPending").addEventListener("click", () => {
-      pending = seedPendingExamples();
-      savePending(pending);
-      toast("Pendentes repostos (3 exemplos).");
-      renderAll();
-    });
-
-    // Limpar apenas o dia selecionado (devolve tudo a pendente)
-    $("clearDay").addEventListener("click", () => {
-      const allCars = Object.keys(dayPlan.assignedByCar || {});
-      allCars.forEach(carId => {
-        (dayPlan.assignedByCar[carId] || []).forEach(job => pending.push(job));
-      });
-      dayPlan = { assignedByCar: {} };
-
-      savePending(pending);
-      localStorage.removeItem(DAY_KEY(currentDayKey));
-
-      toast("Dia limpo (trabalhos voltaram a pendente).");
-      renderAll();
-    });
-
-    // Change day (planeamento muda, pendentes mantêm-se)
-    $("daySelect").addEventListener("change", (e) => {
-      currentDayKey = e.target.value;
-      dayPlan = loadDayPlan(currentDayKey);
-      renderAll();
-    });
-
-    // Init
-    renderDayPicker();
+  // ===== Drivers actions =====
+  function addDriver(nameRaw){
+    const name = normalizeDriverName(nameRaw);
+    if (!name) return toast("Indica um nome de motorista.");
+    if (activeDrivers.includes(name)) return toast("Esse motorista já existe.");
+    activeDrivers.push(name);
+    localStorage.setItem(DRIVERS_KEY, JSON.stringify(activeDrivers));
     renderAll();
-  </script>
+    maybeAlertDriverConflicts();
+    toast(`Motorista adicionado: ${name}`);
+  }
+  function removeDriverActiveOnly(name){
+    if (!name) return;
+    if (!activeDrivers.includes(name)) return toast("Esse motorista já não está ativo.");
+    activeDrivers = activeDrivers.filter(d => d !== name);
+    localStorage.setItem(DRIVERS_KEY, JSON.stringify(activeDrivers));
+    renderAll();
+    maybeAlertDriverConflicts();
+    toast(`Motorista removido da lista ativa: ${name} (histórico mantido)`);
+  }
+
+  // ===== Cars actions =====
+  function addCar(carIdRaw, carType, defaultDriver){
+    const carId = normalizeCarId(carIdRaw);
+    if (!carId) return toast("Indica uma matrícula.");
+    if (activeCarIds().includes(carId)) return toast("Essa viatura já está ativa.");
+    const drv = defaultDriver || (activeDrivers[0] || "Motorista A");
+    const type = carType && CAR_TYPES_ORDER.includes(carType) ? carType : CAR_TYPES_ORDER[0];
+    activeCars.unshift({ carId, carType: type, defaultDriver: drv });
+    saveActiveCars(activeCars);
+    renderAll();
+    maybeAlertDriverConflicts();
+    toast(`Viatura adicionada: ${carId} (${type})`);
+  }
+  function removeCarActiveOnly(carId){
+    if (!carId) return;
+    if (!activeCarIds().includes(carId)) return toast("Essa viatura já não está ativa.");
+    activeCars = activeCars.filter(c => c.carId !== carId);
+    saveActiveCars(activeCars);
+    renderAll();
+    maybeAlertDriverConflicts();
+    toast(`Viatura removida da lista ativa: ${carId} (histórico mantido)`);
+  }
+
+  // ===== Modal open/close =====
+  function showModal(backdropId){ $(backdropId).classList.add("show"); }
+  function hideModal(backdropId){ $(backdropId).classList.remove("show"); }
+  function wireBackdropClose(backdropId){
+    $(backdropId).addEventListener("click", (e) => { if (e.target.id === backdropId) hideModal(backdropId); });
+  }
+  ["pendingEditorBackdrop","driversBackdrop","carsBackdrop"].forEach(wireBackdropClose);
+
+  $("openPendingEditor").addEventListener("click", () => openPendingEditor());
+  $("closePendingEditor").addEventListener("click", () => hideModal("pendingEditorBackdrop"));
+
+  $("openDrivers").addEventListener("click", () => showModal("driversBackdrop"));
+  $("closeDrivers").addEventListener("click", () => hideModal("driversBackdrop"));
+
+  $("openCars").addEventListener("click", () => showModal("carsBackdrop"));
+  $("closeCars").addEventListener("click", () => hideModal("carsBackdrop"));
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    ["pendingEditorBackdrop","carsBackdrop","driversBackdrop"].forEach(id => $(id).classList.remove("show"));
+  });
+
+  // ===== Drivers modal renderers =====
+  function renderRemoveDriverSelect(){
+    const sel = $("removeDriverSelect");
+    sel.innerHTML = "";
+    const list = [...activeDrivers].sort((a,b)=>a.localeCompare(b));
+    if (list.length === 0){
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "Sem motoristas ativos";
+      sel.appendChild(opt);
+      return;
+    }
+    list.forEach(d => {
+      const opt = document.createElement("option");
+      opt.value = d;
+      opt.textContent = d;
+      sel.appendChild(opt);
+    });
+  }
+
+  // ===== Cars modal renderers =====
+  function renderRemoveCarSelect(){
+    const sel = $("removeCarSelect");
+    sel.innerHTML = "";
+    const cars = activeCarIds().sort();
+    if (cars.length === 0){
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "Sem viaturas ativas";
+      sel.appendChild(opt);
+      return;
+    }
+    cars.forEach(c => {
+      const type = activeCars.find(x => x.carId === c)?.carType || "";
+      const opt = document.createElement("option");
+      opt.value = c;
+      opt.textContent = type ? `${c} — ${type}` : c;
+      sel.appendChild(opt);
+    });
+  }
+
+  // ===== Pending add (modal) =====
+  $("addJob").addEventListener("click", () => {
+    const title = $("jobTitle").value.trim();
+    const due = $("jobDue").value;
+    if (!title) return toast("Indica um nome de trabalho.");
+    if (!due) return toast("Indica a data limite.");
+
+    pending.unshift({
+      id: uid(),
+      title,
+      workNo: $("jobWorkNo").value.trim(),
+      carType: $("jobCarType").value,
+      load: $("jobLoad").value.trim(),
+      unload: $("jobUnload").value.trim(),
+      qty: $("jobQty").value.trim(),
+      time: $("jobTime").value.trim(),
+      due,
+      notes: $("jobNotes").value.trim(),
+    });
+    savePending(pending);
+
+    $("jobTitle").value = "";
+    $("jobWorkNo").value = "";
+    $("jobLoad").value = "";
+    $("jobUnload").value = "";
+    $("jobQty").value = "";
+    $("jobTime").value = "";
+    $("jobDue").value = "";
+    $("jobNotes").value = "";
+    fillCarTypesSelect($("jobCarType"), CAR_TYPES_ORDER[0]);
+
+    renderAll();
+    toast("Adicionado aos pendentes");
+  });
+
+  $("resetPending").addEventListener("click", () => {
+    pending = seedPendingExamples();
+    savePending(pending);
+    renderAll();
+    toast("Pendentes repostos (3 exemplos).");
+  });
+
+  // ===== Drivers modal actions =====
+  $("addDriverBtn").addEventListener("click", () => { addDriver($("newDriver").value); $("newDriver").value = ""; });
+  $("removeDriverBtn").addEventListener("click", () => {
+    const name = $("removeDriverSelect").value;
+    if (!name) return;
+    if (!confirm(`Remover o motorista "${name}" da lista ativa?\n\nO histórico mantém-se.`)) return;
+    removeDriverActiveOnly(name);
+  });
+
+  // ===== Cars modal actions =====
+  $("addCar").addEventListener("click", () => { addCar($("newCar").value, $("newCarType").value, $("newCarDefaultDriver").value); $("newCar").value = ""; });
+  $("removeCarBtn").addEventListener("click", () => {
+    const carId = $("removeCarSelect").value;
+    if (!carId) return;
+    if (!confirm(`Remover a viatura ${carId} da lista ativa?\n\nIsto NÃO apaga atribuições nem motoristas de dias anteriores.`)) return;
+    removeCarActiveOnly(carId);
+  });
+
+  // ===== Day actions =====
+  $("daySelect").addEventListener("change", (e) => {
+    currentDayKey = e.target.value;
+    dayPlan = loadDayPlan(currentDayKey);
+    renderAll();
+    maybeAlertDriverConflicts();
+  });
+  $("clearDay").addEventListener("click", () => {
+    const allCars = Object.keys(dayPlan.assignedByCar || {});
+    allCars.forEach(carId => (dayPlan.assignedByCar[carId] || []).forEach(job => pending.push(job)));
+    dayPlan = { assignedByCar: {}, driverByCar: {}, driverManualByCar: {} };
+    savePending(pending);
+    localStorage.removeItem(DAY_KEY(currentDayKey));
+    renderAll();
+    maybeAlertDriverConflicts();
+    toast("Dia limpo (trabalhos voltaram a pendente).");
+  });
+
+  // ===== Init day picker =====
+  function initDayPicker(){
+    const sel = $("daySelect");
+    sel.innerHTML = "";
+    const base = new Date();
+    for (let offset=-7; offset<=7; offset++){
+      const d = new Date(base);
+      d.setDate(base.getDate() + offset);
+      const k = formatDayKey(d);
+      const opt = document.createElement("option");
+      opt.value = k;
+      opt.textContent = dayLabel(k);
+      if (k === currentDayKey) opt.selected = true;
+      sel.appendChild(opt);
+    }
+    $("dateLabel").textContent = dayLabel(currentDayKey);
+  }
+
+  // ===== Main render =====
+  function renderAll(){
+    renderPendingLane();
+    renderRemoveDriverSelect();
+    renderRemoveCarSelect();
+    renderNewCarDefaultDriverSelect();
+    renderDayRows();
+  }
+
+  // ===== Planning driver conflict UI =====
+  function renderNewCarDefaultDriverSelect(){
+    renderDriverSelectOptions($("newCarDefaultDriver"), activeDrivers[0] || "Motorista A");
+  }
+
+  // ===== Init selects =====
+  fillCarTypesSelect($("jobCarType"), CAR_TYPES_ORDER[0]);
+  fillCarTypesSelect($("newCarType"), CAR_TYPES_ORDER[0]);
+
+  // ===== Final init =====
+  initDayPicker();
+  renderAll();
+  maybeAlertDriverConflicts();
+</script>
 </body>
 </html>
